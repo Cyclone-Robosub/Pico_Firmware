@@ -6,20 +6,23 @@ import math
 rev_pulse = 1100 * 1000
 stop_pulse = 1500 * 1000
 fwd_pulse_raw = 1900 * 1000 # dont use this one, it's output can't be replicated in reverse
-rev_adj = 0.97 # thrusters are more powerful in fwd direction
+rev_adj = 1 # thrusters are more powerful in fwd direction
 fwd_pulse = int(fwd_pulse_raw * rev_adj)
 frequency = 10
 pwm_file = "pwm_file.csv"
 
 zero_set = [0 for i in range(8)]
 stop_set = [stop_pulse for i in range(8)]
-fwd_set = [stop_pulse for i in range(4)] + [fwd_pulse for i in range(4)]
-crab_set = [stop_pulse for i in range(4)] + [fwd_pulse, rev_pulse, rev_pulse, fwd_pulse] 
-down_set =  [rev_pulse for i in range(4)] + [stop_pulse for i in range(4)]
-barrell = [rev_pulse, fwd_pulse, rev_pulse, fwd_pulse] + [stop_pulse for i in range(4)]
-summer = [rev_pulse, rev_pulse, fwd_pulse, fwd_pulse ] + [stop_pulse for i in range(4)]
-spin = [stop_pulse for i in range(4)] + [fwd_pulse, rev_pulse, fwd_pulse, rev_pulse]
-torpedo = [rev_pulse, fwd_pulse, rev_pulse, fwd_pulse] + [fwd_pulse for i in range(4)]
+
+fwd_set = [stop_pulse for i in range(4)] + [fwd_pulse, rev_pulse, fwd_pulse, rev_pulse]
+crab_set = [stop_pulse for i in range(4)] + [fwd_pulse, fwd_pulse, rev_pulse, rev_pulse] 
+down_set =  [fwd_pulse, rev_pulse, fwd_pulse, rev_pulse] + [stop_pulse for i in range(4)]
+
+barrell = [fwd_pulse, fwd_pulse, fwd_pulse, fwd_pulse] + [stop_pulse for i in range(4)]
+summer = [rev_pulse, fwd_pulse, fwd_pulse, rev_pulse ] + [stop_pulse for i in range(4)]
+spin_set = [stop_pulse for i in range(4)] + [fwd_pulse for i in range(4)]
+
+torpedo = [fwd_pulse, fwd_pulse, fwd_pulse, fwd_pulse] + [fwd_pulse, rev_pulse, fwd_pulse, rev_pulse]
 
 
 class Plant:
@@ -39,13 +42,13 @@ class Plant:
         sin45 = math.sin(math.pi / 4)
         self.thruster_directions = [
             [  0,     0,    1  ],
+            [  0,     0,   -1  ],
             [  0,     0,    1  ],
-            [  0,     0,    1  ],
-            [  0,     0,    1  ],
+            [  0,     0,   -1  ],
             [-sin45, -sin45,  0  ],
+            [ sin45, -sin45,  0  ],
             [-sin45,  sin45,  0  ],
-            [-sin45,  sin45,  0  ],
-            [-sin45, -sin45,  0  ]]
+            [ sin45, sin45,   0  ]]
 
         # Thruster torques
         self.thruster_torques = [self.cross_product(self.thruster_positions[i], self.thruster_directions[i]) for i in range(8)]
@@ -99,14 +102,14 @@ class Thrust_Control:
         self.plant = Plant()
         # Define PWM pins for each thruster
         self.thrusters = [
-            PWM(Pin(3)),
-            PWM(Pin(2)),
-            PWM(Pin(5)),
             PWM(Pin(4)),
-            PWM(Pin(18)),
-            PWM(Pin(20)),
-            PWM(Pin(19)),
-            PWM(Pin(21))]
+            PWM(Pin(5)),
+            PWM(Pin(2)),
+            PWM(Pin(3)),
+            PWM(Pin(9)),
+            PWM(Pin(7)),
+            PWM(Pin(8)),
+            PWM(Pin(6))]
         
         # Set default frequency and duty cycle
         for thruster in self.thrusters:
@@ -167,5 +170,3 @@ class Thrust_Control:
         
 tc = Thrust_Control()
 tc.pwm(zero_set)
-
-
