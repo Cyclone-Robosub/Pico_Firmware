@@ -2,6 +2,7 @@ from machine import Pin, PWM
 import sys
 import time
 import math
+from typing import List, Dict
 
 rev_pulse = 1100 * 1000
 stop_pulse = 1500 * 1000
@@ -24,25 +25,52 @@ spin_set = [stop_pulse for i in range(4)] + [fwd_pulse for i in range(4)]
 
 torpedo = [fwd_pulse, fwd_pulse, fwd_pulse, fwd_pulse] + [fwd_pulse, rev_pulse, fwd_pulse, rev_pulse]
 
-def configurePin(pinNumber, words):
-    mode = words[0]
-    if mode == "HardPwm":
-        print(f"Configuring pin {pinNumber} to Hardware PWM.")
-    elif mode == "SoftPwm":
-        print(f"Configuring pin {pinNumber} to Software PWM.")
-    elif mode == "Digital":
-        print(f"Configuring pin {pinNumber} to digital pin.")
 
-def setPinState(pinNumber, words):
-    mode = words[0]
-    if mode == "PWM":
-        pulseWidth = int(words[1])
-        if (1100 <= pulseWidth <= 1900):
-            print(f"Setting pin {pinNumber} to PWM value {pulseWidth}.")
-    elif mode == "Digital":
-        digitalPinState= words[1]
-        if (digitalPinState == "Low" or digitalPinState == "High"):
-            print(f"Setting pin {pinNumber} to digital pin state {digitalPinState}.")
+
+class PWMPin:
+    def __init__(self, pinNumber:int, identifier:str):
+        self._pinNumber = pinNumber
+        self._identifier = identifier
+        self._machinePWM = PWM(Pin(pinNumber))
+    
+    def pinNumber(self):
+        return self._pinNumber
+
+    def identifier(self):
+        return self._identifier
+    
+    def setFrequency(self, frequency:int):
+        self._machinePWM.freq(frequency)
+
+    def setPWM(self, pulseWidth:int):
+        self._machinePWM.duty_ns(pulseWidth)
+
+
+
+class ThrusterMap:
+    def __init__(self, PWMPins:List[PWMPin]):
+        self._PWMMap:Dict[int, PWMPin]
+        self._indexMap:Dict[int, int]
+        for i in range(len(PWMPins)):
+            self._PWMMap[PWMPins[i].pinNumber] = PWMPins[i]
+            self._indexMap[i] = PWMPins[i].pinNumber
+        
+
+    def length(self):
+        return len(self._PWMMap)
+    
+    def setPWMByPin(self, pinNumber:int, PWMValue:int):
+        self._PWMMap[pinNumber].setPWM(PWMValue)
+
+    def setFrequency(self, pinNumber:int, frequency:int):
+        self._PWMMap[pinNumber].setFrequency(frequency)
+
+    def setPwmByIndex(self, index:int, PWMValue:int):
+        self.setPWMByPin(self._indexMap[index], PWMValue)
+
+    def setFrequencyByIndex(self, index:int, frequency:int):
+        self.setPWMByPin(self._indexMap[index], frequency)
+    
 
 class Plant:
     def __init__(self):
@@ -121,39 +149,53 @@ class Thrust_Control:
 
         self.plant = Plant()
         # Define PWM pins for each thruster
-        self.thrusters = [
-            PWM(Pin(4)),
-            PWM(Pin(5)),
-            PWM(Pin(2)),
-            PWM(Pin(3)),
-            PWM(Pin(9)),
-            PWM(Pin(7)),
-            PWM(Pin(8)),
-            PWM(Pin(6))]
+        pins:List[PWMPin] = [
+            PWMPin(4, "Unknown thruster"),
+            PWMPin(5, "Unknown thruster"),
+            PWMPin(2, "Unknown thruster"),
+            PWMPin(3, "Unknown thruster"),
+            PWMPin(9, "Unknown thruster"),
+            PWMPin(7, "Unknown thruster"),
+            PWMPin(8, "Unknown thruster"),
+            PWMPin(6, "Unknown thruster")]
+        self.thrusters = ThrusterMap(pins)
         
         # Set default frequency and duty cycle
-        for thruster in self.thrusters:
-            thruster.freq(frequency)
-            thruster.duty_ns(0)
+        for i in range(self.thrusters.length()):
+            self.thrusters.setFrequencyByIndex(i, 0)
+            self.thrusters.setPwmByIndex(i, 0)
+
         
     def pwm(self, pwm_set):
         
-        if (len(pwm_set) != len(self.thrusters)):
+        if (len(pwm_set) != self.thrusters.length()):
             print("Wrong length for pwm set\n")
             return
         
         pwm_set = [int(i) for i in pwm_set]
 
-        f = open(pwm_file, 'a')
+        log_file = open(pwm_file, 'a')
         start = str(time.time_ns())
         for i in range(len(pwm_set)):
-            self.thrusters[i].duty_ns(pwm_set[i])
+            self.thrusters.setPwmByIndex(i, pwm_set[i])
         end = str(time.time_ns())
         
         string = start + "," + end + "," + ",".join(map(str, pwm_set)) + "\n"
-        f.write(string)
+        log_file.write(string)
         print(string)
-        f.close()
+        log_file.close()
+
+    def singlePwm(self, pinNumber, pwmValue):
+        log_file = open(pwm_file, 'a')
+        start = str(time.time_ns())
+        self.thrusters.setPWMByPin(pinNumber, pwmValue)
+        end = str(time.time_ns())
+        
+        string = start + "," + end + "," + str(pwmValue) + "\n"
+        log_file.write(string)
+        print(string)
+        log_file.close()
+
         
         
     
@@ -187,6 +229,26 @@ class Thrust_Control:
     def reaction(self, pwm_set, scale=1):
         pwm = [ scale * (i - stop_pulse) + stop_pulse for i in pwm_set]
         self.plant.pwm_force(pwm)
+
+def configurePin(pinNumber, words):
+    mode = words[0]
+    if mode == "HardPwm":
+        print(f"Configuring pin {pinNumber} to Hardware PWM.")
+    elif mode == "SoftPwm":
+        print(f"Configuring pin {pinNumber} to Software PWM.")
+    elif mode == "Digital":
+        print(f"Configuring pin {pinNumber} to digital pin.")
+
+def setPinState(pinNumber, words, thrusterControl:Thrust_Control):
+    mode = words[0]
+    if mode == "PWM":
+        pulseWidth = int(words[1])
+        if (1100 <= pulseWidth <= 1900):
+            thrusterControl.singlePwm(pinNumber, pulseWidth)
+    elif mode == "Digital":
+        digitalPinState= words[1]
+        if (digitalPinState == "Low" or digitalPinState == "High"):
+            print(f"Setting pin {pinNumber} to digital pin state {digitalPinState}.")
         
 tc = Thrust_Control()
 tc.pwm(zero_set)
@@ -202,6 +264,6 @@ while True:
         if words[0] == "Configure":
             configurePin(words[1], words[2:])
         elif words[0] == "Set":
-            setPinState(words[1], words[2:])
+            setPinState(words[1], words[2:], tc)
         elif words[0] == "Exit":
             break
