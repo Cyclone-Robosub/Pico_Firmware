@@ -243,7 +243,7 @@ def setPinState(pinNumber, words, thrusterControl:Thrust_Control):
     if mode == "PWM":
         pulseWidth = int(words[1])
         if (1100 <= pulseWidth <= 1900):
-            thrusterControl.singlePwm(pinNumber, pulseWidth)
+            thrusterControl.singlePwm(int(pinNumber), int(pulseWidth))
     elif mode == "Digital":
         digitalPinState= words[1]
         if (digitalPinState == "Low" or digitalPinState == "High"):
@@ -251,19 +251,21 @@ def setPinState(pinNumber, words, thrusterControl:Thrust_Control):
         
 tc = Thrust_Control()
 tc.pwm(zero_set)
-tc.pwm(torpedo)
 
 # uart = machine.UART(1, 115200)
 # uart.init(115200, bits=8, parity=None, stop=1)
-# while True:
-#     # string = uart.readline()
-#     string = sys.stdin.readline()
-#     if (string != None and len(string) >= 1):
-#         words = string.split()
-#         command = words[0]
-#         if words[0] == "Configure":
-#             configurePin(words[1], words[2:])
-#         elif words[0] == "Set":
-#             setPinState(words[1], words[2:], tc)
-#         elif words[0] == "Exit":
-#             break
+led = Pin("LED", Pin.OUT)
+while True:
+    # string = uart.readline()
+    string = sys.stdin.readline()
+    if (string != None and len(string) >= 1):
+        led.toggle()
+        words = string.split()
+        command = words[0]
+        if words[0] == "Configure":
+            configurePin(words[1], words[2:])
+        elif words[0] == "Set":
+            setPinState(words[1], words[2:], tc)
+        elif words[0] == "Exit":
+            break
+    string = sys.stdin.readline()
