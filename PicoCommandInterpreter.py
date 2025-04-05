@@ -39,9 +39,13 @@ class PWMPin:
         return self._identifier
     
     def setFrequency(self, frequency:int):
+        print("Pin: ", self._machinePWM, " Frequency: ", frequency)
         self._machinePWM.freq(frequency)
 
     def setPWM(self, pulseWidth:int):
+        # print("Pin ", self._pinNumber, " set to ", pulseWidth)
+        print(self._machinePWM)
+        print(pulseWidth)
         self._machinePWM.duty_ns(pulseWidth)
 
 
@@ -51,7 +55,7 @@ class ThrusterMap:
         self._PWMMap = {}
         self._indexMap = {}
         for i in range(len(PWMPins)):
-            self._PWMMap[PWMPins[i].pinNumber] = PWMPins[i]
+            self._PWMMap[PWMPins[i].pinNumber()] = PWMPins[i]
             self._indexMap[i] = PWMPins[i].pinNumber()
         
 
@@ -60,16 +64,15 @@ class ThrusterMap:
     
     def setPWMByPin(self, pinNumber:int, PWMValue:int):
         self._PWMMap[pinNumber].setPWM(PWMValue)
-        print("pin number: ", pinNumber, " set to ", PWMValue)
 
-    def setFrequency(self, pinNumber:int, frequency:int):
+    def setFrequencyByPin(self, pinNumber:int, frequency:int):
         self._PWMMap[pinNumber].setFrequency(frequency)
 
     def setPwmByIndex(self, index:int, PWMValue:int):
         self.setPWMByPin(self._indexMap[index], PWMValue)
 
     def setFrequencyByIndex(self, index:int, frequency:int):
-        self.setPWMByPin(self._indexMap[index], frequency)
+        self.setFrequencyByPin(self._indexMap[index], frequency)
     
 
 class Plant:
@@ -162,7 +165,7 @@ class Thrust_Control:
         
         # Set default frequency and duty cycle
         for i in range(self.thrusters.length()):
-            self.thrusters.setFrequencyByIndex(i, 0)
+            self.thrusters.setFrequencyByIndex(i, frequency)
             self.thrusters.setPwmByIndex(i, 0)
 
         
