@@ -39,13 +39,9 @@ class PWMPin:
         return self._identifier
     
     def setFrequency(self, frequency:int):
-        print("Pin: ", self._machinePWM, " Frequency: ", frequency)
         self._machinePWM.freq(frequency)
 
     def setPWM(self, pulseWidth:int):
-        # print("Pin ", self._pinNumber, " set to ", pulseWidth)
-        print(self._machinePWM)
-        print(pulseWidth)
         self._machinePWM.duty_ns(pulseWidth)
 
 
