@@ -2,7 +2,6 @@ from machine import Pin, PWM
 import sys
 import time
 import math
-from typing import List, Dict
 
 rev_pulse = 1100 * 1000
 stop_pulse = 1500 * 1000
@@ -48,9 +47,9 @@ class PWMPin:
 
 
 class ThrusterMap:
-    def __init__(self, PWMPins:List[PWMPin]):
-        self._PWMMap:Dict[int, PWMPin]
-        self._indexMap:Dict[int, int]
+    def __init__(self, PWMPins):
+        self._PWMMap
+        self._indexMap
         for i in range(len(PWMPins)):
             self._PWMMap[PWMPins[i].pinNumber] = PWMPins[i]
             self._indexMap[i] = PWMPins[i].pinNumber
@@ -149,7 +148,7 @@ class Thrust_Control:
 
         self.plant = Plant()
         # Define PWM pins for each thruster
-        pins:List[PWMPin] = [
+        pins = [
             PWMPin(4, "Unknown thruster"),
             PWMPin(5, "Unknown thruster"),
             PWMPin(2, "Unknown thruster"),
