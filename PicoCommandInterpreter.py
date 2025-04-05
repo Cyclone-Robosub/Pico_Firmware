@@ -48,11 +48,11 @@ class PWMPin:
 
 class ThrusterMap:
     def __init__(self, PWMPins):
-        self._PWMMap
-        self._indexMap
+        self._PWMMap = {}
+        self._indexMap = {}
         for i in range(len(PWMPins)):
             self._PWMMap[PWMPins[i].pinNumber] = PWMPins[i]
-            self._indexMap[i] = PWMPins[i].pinNumber
+            self._indexMap[i] = PWMPins[i].pinNumber()
         
 
     def length(self):
@@ -60,6 +60,7 @@ class ThrusterMap:
     
     def setPWMByPin(self, pinNumber:int, PWMValue:int):
         self._PWMMap[pinNumber].setPWM(PWMValue)
+        print("pin number: ", pinNumber, " set to ", PWMValue)
 
     def setFrequency(self, pinNumber:int, frequency:int):
         self._PWMMap[pinNumber].setFrequency(frequency)
@@ -251,18 +252,19 @@ def setPinState(pinNumber, words, thrusterControl:Thrust_Control):
         
 tc = Thrust_Control()
 tc.pwm(zero_set)
+tc.pwm(torpedo)
 
-# uart = UART(1, 115200)
+# uart = machine.UART(1, 115200)
 # uart.init(115200, bits=8, parity=None, stop=1)
-while True:
-    # string = uart.readline()
-    string = sys.stdin.readline()
-    if (string != None and len(string) >= 1):
-        words = string.split()
-        command = words[0]
-        if words[0] == "Configure":
-            configurePin(words[1], words[2:])
-        elif words[0] == "Set":
-            setPinState(words[1], words[2:], tc)
-        elif words[0] == "Exit":
-            break
+# while True:
+#     # string = uart.readline()
+#     string = sys.stdin.readline()
+#     if (string != None and len(string) >= 1):
+#         words = string.split()
+#         command = words[0]
+#         if words[0] == "Configure":
+#             configurePin(words[1], words[2:])
+#         elif words[0] == "Set":
+#             setPinState(words[1], words[2:], tc)
+#         elif words[0] == "Exit":
+#             break
