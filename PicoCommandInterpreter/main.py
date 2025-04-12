@@ -262,10 +262,13 @@ while True:
         led.toggle()
         words = string.split()
         command = words[0]
-        if words[0] == "Configure":
-            configurePin(words[1], words[2:])
-        elif words[0] == "Set":
-            setPinState(words[1], words[2:], tc)
-        elif words[0] == "Exit":
+        if len(words) > 2:
+            if words[0] == "Configure":
+                configurePin(words[1], words[2:])
+            elif words[0] == "Set":
+                setPinState(words[1], words[2:], tc)
+            elif words[0] == "Exit":
+                break
+        else:
             break
     string = sys.stdin.readline()
