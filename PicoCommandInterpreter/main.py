@@ -255,6 +255,7 @@ tc.pwm(zero_set)
 # uart = machine.UART(1, 115200)
 # uart.init(115200, bits=8, parity=None, stop=1)
 led = Pin("LED", Pin.OUT)
+echo = False
 while True:
     # string = uart.readline()
     string = sys.stdin.readline()
@@ -262,6 +263,14 @@ while True:
         led.toggle()
         words = string.split()
         command = words[0]
+        if len(words) == 2:
+            if words[0] == "echo":
+                if words[1] == "on":
+                    echo = True
+                elif words[1] == "off":
+                    echo = False
+        if echo:
+            sys.stdout.write(string)
         if len(words) > 2:
             if words[0] == "Configure":
                 configurePin(words[1], words[2:])
