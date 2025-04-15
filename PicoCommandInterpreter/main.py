@@ -278,6 +278,4 @@ while True:
                 setPinState(words[1], words[2:], tc)
             elif words[0] == "Exit":
                 break
-        else:
-            break
     string = sys.stdin.readline()
