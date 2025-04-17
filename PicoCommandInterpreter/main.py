@@ -259,23 +259,25 @@ echo = False
 while True:
     # string = uart.readline()
     string = sys.stdin.readline()
-    if (string != None and len(string) >= 1):
-        led.toggle()
+    if (string != None and len(string) > 1):
         words = string.split()
         command = words[0]
         if len(words) == 2:
             if words[0] == "echo":
                 if words[1] == "on":
+                    led.toggle()
                     echo = True
                 elif words[1] == "off":
+                    led.toggle()
                     echo = False
         if echo:
             sys.stdout.write(string)
+            sys.stdout.write(string) # Need this twice for it to show up once. No idea why. Flushing buffer is unavailable.
         if len(words) > 2:
+            led.toggle()
             if words[0] == "Configure":
                 configurePin(words[1], words[2:])
             elif words[0] == "Set":
                 setPinState(words[1], words[2:], tc)
             elif words[0] == "Exit":
                 break
-    string = sys.stdin.readline()
