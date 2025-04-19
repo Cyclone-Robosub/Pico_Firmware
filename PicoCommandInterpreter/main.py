@@ -181,7 +181,7 @@ class Thrust_Control:
         
         string = start + "," + end + "," + ",".join(map(str, pwm_set)) + "\n"
         log_file.write(string)
-        print(string)
+        # print(string)
         log_file.close()
 
     def singlePwm(self, pinNumber, pwmValue):
@@ -192,7 +192,7 @@ class Thrust_Control:
         
         string = start + "," + end + "," + str(pwmValue) + "\n"
         log_file.write(string)
-        print(string)
+        # print(string)
         log_file.close()
 
         
@@ -231,12 +231,12 @@ class Thrust_Control:
 
 def configurePin(pinNumber, words):
     mode = words[0]
-    if mode == "HardPwm":
-        print(f"Configuring pin {pinNumber} to Hardware PWM.")
-    elif mode == "SoftPwm":
-        print(f"Configuring pin {pinNumber} to Software PWM.")
-    elif mode == "Digital":
-        print(f"Configuring pin {pinNumber} to digital pin.")
+    # if mode == "HardPwm":
+    #     print(f"Configuring pin {pinNumber} to Hardware PWM.")
+    # elif mode == "SoftPwm":
+    #     print(f"Configuring pin {pinNumber} to Software PWM.")
+    # elif mode == "Digital":
+    #     print(f"Configuring pin {pinNumber} to digital pin.")
 
 def setPinState(pinNumber, words, thrusterControl:Thrust_Control):
     mode = words[0]
