@@ -247,7 +247,8 @@ def setPinState(pinNumber, words, thrusterControl:Thrust_Control):
     elif mode == "Digital":
         digitalPinState= words[1]
         if (digitalPinState == "Low" or digitalPinState == "High"):
-            print(f"Setting pin {pinNumber} to digital pin state {digitalPinState}.")
+            # print(f"Setting pin {pinNumber} to digital pin state {digitalPinState}.")
+            return
         
 tc = Thrust_Control()
 tc.pwm(zero_set)
@@ -271,8 +272,7 @@ while True:
                     led.toggle()
                     echo = False
         if echo:
-            sys.stdout.write(string)
-            sys.stdout.write(string) # Need this twice for it to show up once. No idea why. Flushing buffer is unavailable.
+            sys.stdout.buffer.write(string)
         if len(words) > 2:
             led.toggle()
             if words[0] == "Configure":
