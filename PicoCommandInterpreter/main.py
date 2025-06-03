@@ -9,7 +9,7 @@ fwd_pulse_raw = 1900 * 1000 # dont use this one, it's output can't be replicated
 rev_adj = 1 # thrusters are more powerful in fwd direction
 fwd_pulse = int(fwd_pulse_raw * rev_adj)
 frequency = 10
-pwm_file = "pwm_file.csv"
+# pwm_file = "pwm_file.csv"
 
 zero_set = [0 for i in range(8)]
 stop_set = [stop_pulse for i in range(8)]
@@ -149,14 +149,14 @@ class Thrust_Control:
         self.plant = Plant()
         # Define PWM pins for each thruster
         pins = [
-            PWMPin(4, "Unknown thruster"),
-            PWMPin(5, "Unknown thruster"),
-            PWMPin(2, "Unknown thruster"),
-            PWMPin(3, "Unknown thruster"),
-            PWMPin(9, "Unknown thruster"),
-            PWMPin(7, "Unknown thruster"),
-            PWMPin(8, "Unknown thruster"),
-            PWMPin(6, "Unknown thruster")]
+            PWMPin(8, "Thruster 0"),
+            PWMPin(9, "Thruster 1"),
+            PWMPin(6, "Thruster 2"),
+            PWMPin(7, "Thruster 3"),
+            PWMPin(13, "Thruster 4"),
+            PWMPin(11, "Thruster 5"),
+            PWMPin(12, "Thruster 6"),
+            PWMPin(10, "Thruster 7")]
         self.thrusters = ThrusterMap(pins)
         
         # Set default frequency and duty cycle
@@ -173,27 +173,27 @@ class Thrust_Control:
         
         pwm_set = [int(i) for i in pwm_set]
 
-        log_file = open(pwm_file, 'a')
-        start = str(time.time_ns())
+        # log_file = open(pwm_file, 'a')
+        # start = str(time.time_ns())
         for i in range(len(pwm_set)):
             self.thrusters.setPwmByIndex(i, pwm_set[i])
-        end = str(time.time_ns())
+        # end = str(time.time_ns())
         
-        string = start + "," + end + "," + ",".join(map(str, pwm_set)) + "\n"
-        log_file.write(string)
+        # string = start + "," + end + "," + ",".join(map(str, pwm_set)) + "\n"
+        # log_file.write(string)
         # print(string)
-        log_file.close()
+        # log_file.close()
 
     def singlePwm(self, pinNumber, pwmValue):
-        log_file = open(pwm_file, 'a')
+        # log_file = open(pwm_file, 'a')
         start = str(time.time_ns())
         self.thrusters.setPWMByPin(pinNumber, pwmValue)
         end = str(time.time_ns())
         
-        string = start + "," + end + "," + str(pwmValue) + "\n"
-        log_file.write(string)
+        # string = start + "," + end + "," + str(pwmValue) + "\n"
+        # log_file.write(string)
         # print(string)
-        log_file.close()
+        # log_file.close()
 
         
         
@@ -219,11 +219,11 @@ class Thrust_Control:
         time.sleep(time_s)
         self.pwm(stop_set)
         
-    def read(self):
-        logf = open(pwm_file, "r")
-        file_contents = logf.read()
-        print(file_contents)
-        logf.close()
+#     def read(self):
+#         logf = open(pwm_file, "r")
+#         file_contents = logf.read()
+#         print(file_contents)
+#         logf.close()
                 
     def reaction(self, pwm_set, scale=1):
         pwm = [ scale * (i - stop_pulse) + stop_pulse for i in pwm_set]
@@ -281,3 +281,4 @@ while True:
                 setPinState(words[1], words[2:], tc)
             elif words[0] == "Exit":
                 break
+
