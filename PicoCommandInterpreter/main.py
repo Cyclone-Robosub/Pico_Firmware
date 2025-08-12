@@ -249,36 +249,51 @@ def setPinState(pinNumber, words, thrusterControl:Thrust_Control):
         if (digitalPinState == "Low" or digitalPinState == "High"):
             # print(f"Setting pin {pinNumber} to digital pin state {digitalPinState}.")
             return
+
+def killSwitch(tc:Thrust_Control):
+    for i in range(8):
+        tc.thrusters.setPwmByIndex(i, 0)
+    sys.exit()
+
+def createKillSwitchCallback(tc:Thrust_Control):
+    return lambda pin : killSwitch(tc)
         
+        
+def start(tc: Thrust_Control):
+    tc.pwm(zero_set)
+    # uart = machine.UART(1, 115200)
+    # uart.init(115200, bits=8, parity=None, stop=1)
+    led = Pin("LED", Pin.OUT)
+    echo = False
+    while True:
+        # string = uart.readline()
+        string = sys.stdin.readline()
+        if (string != None and len(string) > 1):
+            words = string.split()
+            command = words[0]
+            if len(words) == 2:
+                if words[0] == "echo":
+                    if words[1] == "on":
+                        led.toggle()
+                        echo = True
+                    elif words[1] == "off":
+                        led.toggle()
+                        echo = False
+            if echo:
+                sys.stdout.buffer.write(string)
+            if len(words) > 2:
+                led.toggle()
+                if words[0] == "Configure":
+                    configurePin(words[1], words[2:])
+                elif words[0] == "Set":
+                    setPinState(words[1], words[2:], tc)
+                elif words[0] == "Exit":
+                    break
+
 tc = Thrust_Control()
-tc.pwm(zero_set)
-
-# uart = machine.UART(1, 115200)
-# uart.init(115200, bits=8, parity=None, stop=1)
-led = Pin("LED", Pin.OUT)
-echo = False
-while True:
-    # string = uart.readline()
-    string = sys.stdin.readline()
-    if (string != None and len(string) > 1):
-        words = string.split()
-        command = words[0]
-        if len(words) == 2:
-            if words[0] == "echo":
-                if words[1] == "on":
-                    led.toggle()
-                    echo = True
-                elif words[1] == "off":
-                    led.toggle()
-                    echo = False
-        if echo:
-            sys.stdout.buffer.write(string)
-        if len(words) > 2:
-            led.toggle()
-            if words[0] == "Configure":
-                configurePin(words[1], words[2:])
-            elif words[0] == "Set":
-                setPinState(words[1], words[2:], tc)
-            elif words[0] == "Exit":
-                break
-
+killPin = Pin(15, mode=Pin.IN, pull=Pin.PULL_UP)
+killPin.irq(trigger=Pin.IRQ_FALLING, handler=createKillSwitchCallback(tc)) # IRQ_FALLING might need to be IRQ_RISING
+try:
+    start(tc)
+except:
+    killSwitch(tc)
