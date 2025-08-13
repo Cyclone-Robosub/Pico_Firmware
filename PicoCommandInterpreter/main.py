@@ -162,7 +162,7 @@ class Thrust_Control:
         # Set default frequency and duty cycle
         for i in range(self.thrusters.length()):
             self.thrusters.setFrequencyByIndex(i, frequency)
-            self.thrusters.setPwmByIndex(i, 0)
+            self.thrusters.setPwmByIndex(i, 1500)
 
         
     def pwm(self, pwm_set):
