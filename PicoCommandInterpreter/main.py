@@ -250,14 +250,31 @@ def setPinState(pinNumber, words, thrusterControl:Thrust_Control):
             # print(f"Setting pin {pinNumber} to digital pin state {digitalPinState}.")
             return
 
-def killSwitch(tc:Thrust_Control):
+def softwareCrash(tc:Thrust_Control):
+    current_time = str(time.time_ns())
+    crash_log = "Crashes/Crash_at_" + current_time
+    
+    with open(crash_log, "w") as crash_file:
+        crash_file.write(f"Code crash, occuring at {current_time}")
     for i in range(8):
         tc.thrusters.setPwmByIndex(i, 0)
-    sys.exit()
+    
+    while True:
+        ...
 
 def createKillSwitchCallback(tc:Thrust_Control):
-    return lambda pin : killSwitch(tc)
-        
+    def killSwitchGPIO(pin):
+        current_time = str(time.time_ns())
+        crash_log = "Crashes/Crash_at_" + current_time
+        with open(crash_log, "w") as crash_file:
+            crash_file.write(f"Killswitch triggered, occuring at {current_time}")
+        for i in range(8):
+            tc.thrusters.setPwmByIndex(i, 0)
+        while True:
+            if pin.value() == 1:
+                machine.reset()
+
+    return killSwitchGPIO
         
 def start(tc: Thrust_Control):
     tc.pwm(zero_set)
@@ -292,8 +309,9 @@ def start(tc: Thrust_Control):
 
 tc = Thrust_Control()
 killPin = Pin(15, mode=Pin.IN, pull=Pin.PULL_UP)
-killPin.irq(trigger=Pin.IRQ_FALLING, handler=createKillSwitchCallback(tc)) # IRQ_FALLING might need to be IRQ_RISING
+killPin.irq(trigger=Pin.IRQ_FALLING, handler=createKillSwitchCallback(tc))
 try:
     start(tc)
 except:
-    killSwitch(tc)
+    softwareCrash(tc)
+
