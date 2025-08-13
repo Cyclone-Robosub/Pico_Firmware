@@ -262,8 +262,8 @@ def softwareCrash(tc:Thrust_Control):
     while True:
         ...
 
-def createKillSwitchCallback(tc:Thrust_Control):
-    def killSwitchGPIO(pin):
+def createKillSwitchCallbackHardware(tc:Thrust_Control):
+    def killSwitchGPIOHardware(pin):
         current_time = str(time.time_ns())
         crash_log = "Crashes/Crash_at_" + current_time
         with open(crash_log, "w") as crash_file:
@@ -274,7 +274,21 @@ def createKillSwitchCallback(tc:Thrust_Control):
             if pin.value() == 1:
                 machine.reset()
 
-    return killSwitchGPIO
+    return killSwitchGPIOHardware
+
+def createKillSwitchCallbackSoftware(tc:Thrust_Control):
+    def killSwitchGPIOSoftware(pin):
+        current_time = str(time.time_ns())
+        crash_log = "Crashes/Crash_at_" + current_time
+        with open(crash_log, "w") as crash_file:
+            crash_file.write(f"Killswitch triggered, occuring at {current_time}")
+        for i in range(8):
+            tc.thrusters.setPwmByIndex(i, 0)
+        while True:
+            if pin.value() == 1:
+                machine.reset()
+
+    return killSwitchGPIOSoftware
         
 def start(tc: Thrust_Control):
     tc.pwm(zero_set)
@@ -308,10 +322,11 @@ def start(tc: Thrust_Control):
                     break
 
 tc = Thrust_Control()
-killPin = Pin(15, mode=Pin.IN, pull=Pin.PULL_UP)
-killPin.irq(trigger=Pin.IRQ_FALLING, handler=createKillSwitchCallback(tc))
+killPinHardware = Pin(15, mode=Pin.IN, pull=Pin.PULL_UP)
+killPinSoftware = Pin(16, mode=Pin.IN, pull=Pin.PULL_UP)
+killPinHardware.irq(trigger=Pin.IRQ_FALLING, handler=createKillSwitchCallbackHardware(tc))
+killPinSoftware.irq(trigger=Pin.IRQ_FALLING, handler=createKillSwitchCallbackSoftware(tc))
 try:
     start(tc)
 except:
     softwareCrash(tc)
-
