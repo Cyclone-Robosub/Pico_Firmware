@@ -264,12 +264,12 @@ def softwareCrash(tc:Thrust_Control):
 
 def createKillSwitchCallbackHardware(tc:Thrust_Control):
     def killSwitchGPIOHardware(pin):
+        for i in range(8):
+            tc.thrusters.setPwmByIndex(i, 0)
         current_time = str(time.time_ns())
         crash_log = "Crashes/Crash_at_" + current_time
         with open(crash_log, "w") as crash_file:
-            crash_file.write(f"Killswitch triggered, occuring at {current_time}")
-        for i in range(8):
-            tc.thrusters.setPwmByIndex(i, 0)
+            crash_file.write(f"Hardware killswitch triggered, occuring at {current_time}")
         while True:
             if pin.value() == 1:
                 machine.reset()
@@ -278,12 +278,12 @@ def createKillSwitchCallbackHardware(tc:Thrust_Control):
 
 def createKillSwitchCallbackSoftware(tc:Thrust_Control):
     def killSwitchGPIOSoftware(pin):
+        for i in range(8):
+            tc.thrusters.setPwmByIndex(i, 0)
         current_time = str(time.time_ns())
         crash_log = "Crashes/Crash_at_" + current_time
         with open(crash_log, "w") as crash_file:
-            crash_file.write(f"Killswitch triggered, occuring at {current_time}")
-        for i in range(8):
-            tc.thrusters.setPwmByIndex(i, 0)
+            crash_file.write(f"Software killswitch triggered, occuring at {current_time}")
         while True:
             if pin.value() == 1:
                 machine.reset()
@@ -324,6 +324,12 @@ def start(tc: Thrust_Control):
 tc = Thrust_Control()
 killPinHardware = Pin(15, mode=Pin.IN, pull=Pin.PULL_UP)
 killPinSoftware = Pin(16, mode=Pin.IN, pull=Pin.PULL_UP)
+if killPinHardware.value() == 0:
+    hardwareKillFn = createKillSwitchCallbackHardware(tc)
+    hardwareKillFn(killPinHardware)
+if killPinSoftware.value() == 0:
+    softwareKillFn = createKillSwitchCallbackSoftware(tc)
+    softwareKillFn(killPinSoftware)
 killPinHardware.irq(trigger=Pin.IRQ_FALLING, handler=createKillSwitchCallbackHardware(tc))
 killPinSoftware.irq(trigger=Pin.IRQ_FALLING, handler=createKillSwitchCallbackSoftware(tc))
 try:
