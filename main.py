@@ -1,6 +1,6 @@
 from machine import Pin, PWM
+import sys
 import time
-from time import sleep
 import math
 
 rev_pulse = 1100 * 1000
@@ -9,7 +9,7 @@ fwd_pulse_raw = 1900 * 1000 # dont use this one, it's output can't be replicated
 rev_adj = 1 # thrusters are more powerful in fwd direction
 fwd_pulse = int(fwd_pulse_raw * rev_adj)
 frequency = 10
-pwm_file = "pwm_file.csv"
+# pwm_file = "pwm_file.csv"
 
 zero_set = [0 for i in range(8)]
 stop_set = [stop_pulse for i in range(8)]
@@ -24,6 +24,52 @@ spin_set = [stop_pulse for i in range(4)] + [fwd_pulse for i in range(4)]
 
 torpedo = [fwd_pulse, fwd_pulse, fwd_pulse, fwd_pulse] + [fwd_pulse, rev_pulse, fwd_pulse, rev_pulse]
 
+
+
+class PWMPin:
+    def __init__(self, pinNumber:int, identifier:str):
+        self._pinNumber = pinNumber
+        self._identifier = identifier
+        self._machinePWM = PWM(Pin(pinNumber))
+    
+    def pinNumber(self):
+        return self._pinNumber
+
+    def identifier(self):
+        return self._identifier
+    
+    def setFrequency(self, frequency:int):
+        self._machinePWM.freq(frequency)
+
+    def setPWM(self, pulseWidth:int):
+        self._machinePWM.duty_ns(pulseWidth)
+
+
+
+class ThrusterMap:
+    def __init__(self, PWMPins):
+        self._PWMMap = {}
+        self._indexMap = {}
+        for i in range(len(PWMPins)):
+            self._PWMMap[PWMPins[i].pinNumber()] = PWMPins[i]
+            self._indexMap[i] = PWMPins[i].pinNumber()
+        
+
+    def length(self):
+        return len(self._PWMMap)
+    
+    def setPWMByPin(self, pinNumber:int, PWMValue:int):
+        self._PWMMap[pinNumber].setPWM(PWMValue)
+
+    def setFrequencyByPin(self, pinNumber:int, frequency:int):
+        self._PWMMap[pinNumber].setFrequency(frequency)
+
+    def setPwmByIndex(self, index:int, PWMValue:int):
+        self.setPWMByPin(self._indexMap[index], PWMValue)
+
+    def setFrequencyByIndex(self, index:int, frequency:int):
+        self.setFrequencyByPin(self._indexMap[index], frequency)
+    
 
 class Plant:
     def __init__(self):
@@ -61,6 +107,7 @@ class Plant:
 
         # Transpose to get wrench matrix (6x8)
         self.wrench_matrix = self.transpose_matrix(self.wrench_matrix_transposed)
+
     def pwm_force_scalar(self, x):
         x = x / 1000
         if 1100 <= x < 1460:
@@ -101,39 +148,53 @@ class Thrust_Control:
 
         self.plant = Plant()
         # Define PWM pins for each thruster
-        self.thrusters = [
-            PWM(Pin(4)),
-            PWM(Pin(5)),
-            PWM(Pin(2)),
-            PWM(Pin(3)),
-            PWM(Pin(9)),
-            PWM(Pin(7)),
-            PWM(Pin(8)),
-            PWM(Pin(6))]
+        pins = [
+            PWMPin(8, "Thruster 0"),
+            PWMPin(9, "Thruster 1"),
+            PWMPin(6, "Thruster 2"),
+            PWMPin(7, "Thruster 3"),
+            PWMPin(13, "Thruster 4"),
+            PWMPin(11, "Thruster 5"),
+            PWMPin(12, "Thruster 6"),
+            PWMPin(10, "Thruster 7")]
+        self.thrusters = ThrusterMap(pins)
         
         # Set default frequency and duty cycle
-        for thruster in self.thrusters:
-            thruster.freq(frequency)
-            thruster.duty_ns(0)
+        for i in range(self.thrusters.length()):
+            self.thrusters.setFrequencyByIndex(i, frequency)
+            self.thrusters.setPwmByIndex(i, 1500)
+
         
     def pwm(self, pwm_set):
         
-        if (len(pwm_set) != len(self.thrusters)):
+        if (len(pwm_set) != self.thrusters.length()):
             print("Wrong length for pwm set\n")
             return
         
         pwm_set = [int(i) for i in pwm_set]
 
-        f = open(pwm_file, 'a')
-        start = str(time.time_ns())
+        # log_file = open(pwm_file, 'a')
+        # start = str(time.time_ns())
         for i in range(len(pwm_set)):
-            self.thrusters[i].duty_ns(pwm_set[i])
+            self.thrusters.setPwmByIndex(i, pwm_set[i])
+        # end = str(time.time_ns())
+        
+        # string = start + "," + end + "," + ",".join(map(str, pwm_set)) + "\n"
+        # log_file.write(string)
+        # print(string)
+        # log_file.close()
+
+    def singlePwm(self, pinNumber, pwmValue):
+        # log_file = open(pwm_file, 'a')
+        start = str(time.time_ns())
+        self.thrusters.setPWMByPin(pinNumber, pwmValue)
         end = str(time.time_ns())
         
-        string = start + "," + end + "," + ",".join(map(str, pwm_set)) + "\n"
-        f.write(string)
-        print(string)
-        f.close()
+        # string = start + "," + end + "," + str(pwmValue) + "\n"
+        # log_file.write(string)
+        # print(string)
+        # log_file.close()
+
         
         
     
@@ -158,15 +219,120 @@ class Thrust_Control:
         time.sleep(time_s)
         self.pwm(stop_set)
         
-    def read(self):
-        logf = open(pwm_file, "r")
-        file_contents = logf.read()
-        print(file_contents)
-        logf.close()
+#     def read(self):
+#         logf = open(pwm_file, "r")
+#         file_contents = logf.read()
+#         print(file_contents)
+#         logf.close()
                 
     def reaction(self, pwm_set, scale=1):
         pwm = [ scale * (i - stop_pulse) + stop_pulse for i in pwm_set]
         self.plant.pwm_force(pwm)
+
+def configurePin(pinNumber, words):
+    mode = words[0]
+    # if mode == "HardPwm":
+    #     print(f"Configuring pin {pinNumber} to Hardware PWM.")
+    # elif mode == "SoftPwm":
+    #     print(f"Configuring pin {pinNumber} to Software PWM.")
+    # elif mode == "Digital":
+    #     print(f"Configuring pin {pinNumber} to digital pin.")
+
+def setPinState(pinNumber, words, thrusterControl:Thrust_Control):
+    mode = words[0]
+    if mode == "PWM":
+        pulseWidth = int(words[1])
+        if (1100 <= pulseWidth <= 1900):
+            thrusterControl.singlePwm(int(pinNumber), int(pulseWidth) * 1000)
+    elif mode == "Digital":
+        digitalPinState= words[1]
+        if (digitalPinState == "Low" or digitalPinState == "High"):
+            # print(f"Setting pin {pinNumber} to digital pin state {digitalPinState}.")
+            return
+
+def softwareCrash(tc:Thrust_Control):
+    current_time = str(time.time_ns())
+    crash_log = "Crashes/Crash_at_" + current_time
+    
+    with open(crash_log, "w") as crash_file:
+        crash_file.write(f"Code crash, occuring at {current_time}")
+    for i in range(8):
+        tc.thrusters.setPwmByIndex(i, 0)
+    
+    while True:
+        ...
+
+def createKillSwitchCallbackHardware(tc:Thrust_Control):
+    def killSwitchGPIOHardware(pin):
+        for i in range(8):
+            tc.thrusters.setPwmByIndex(i, 0)
+        current_time = str(time.time_ns())
+        crash_log = "Crashes/Crash_at_" + current_time
+        with open(crash_log, "w") as crash_file:
+            crash_file.write(f"Hardware killswitch triggered, occuring at {current_time}")
+        while True:
+            if pin.value() == 1:
+                machine.reset()
+
+    return killSwitchGPIOHardware
+
+def createKillSwitchCallbackSoftware(tc:Thrust_Control):
+    def killSwitchGPIOSoftware(pin):
+        for i in range(8):
+            tc.thrusters.setPwmByIndex(i, 0)
+        current_time = str(time.time_ns())
+        crash_log = "Crashes/Crash_at_" + current_time
+        with open(crash_log, "w") as crash_file:
+            crash_file.write(f"Software killswitch triggered, occuring at {current_time}")
+        while True:
+            if pin.value() == 1:
+                machine.reset()
+
+    return killSwitchGPIOSoftware
         
+def start(tc: Thrust_Control):
+    tc.pwm(zero_set)
+    # uart = machine.UART(1, 115200)
+    # uart.init(115200, bits=8, parity=None, stop=1)
+    led = Pin("LED", Pin.OUT)
+    echo = False
+    while True:
+        # string = uart.readline()
+        string = sys.stdin.readline()
+        if (string != None and len(string) > 1):
+            words = string.split()
+            command = words[0]
+            if len(words) == 2:
+                if words[0] == "echo":
+                    if words[1] == "on":
+                        led.toggle()
+                        echo = True
+                    elif words[1] == "off":
+                        led.toggle()
+                        echo = False
+            if echo:
+                sys.stdout.buffer.write(string)
+            if len(words) > 2:
+                led.toggle()
+                if words[0] == "Configure":
+                    configurePin(words[1], words[2:])
+                elif words[0] == "Set":
+                    setPinState(words[1], words[2:], tc)
+                elif words[0] == "Exit":
+                    break
+
 tc = Thrust_Control()
-tc.pwm(zero_set)
+killPinHardware = Pin(15, mode=Pin.IN, pull=Pin.PULL_UP)
+killPinSoftware = Pin(16, mode=Pin.IN, pull=Pin.PULL_UP)
+if killPinHardware.value() == 0:
+    hardwareKillFn = createKillSwitchCallbackHardware(tc)
+    hardwareKillFn(killPinHardware)
+if killPinSoftware.value() == 0:
+    softwareKillFn = createKillSwitchCallbackSoftware(tc)
+    softwareKillFn(killPinSoftware)
+killPinHardware.irq(trigger=Pin.IRQ_FALLING, handler=createKillSwitchCallbackHardware(tc))
+killPinSoftware.irq(trigger=Pin.IRQ_FALLING, handler=createKillSwitchCallbackSoftware(tc))
+try:
+    start(tc)
+except:
+    softwareCrash(tc)
