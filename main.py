@@ -18,7 +18,8 @@ class PWMPin:
         self._machinePWM.freq(frequency)
 
     def setPWM(self, pulseWidth:int):
-        self._machinePWM.duty_ns(pulseWidth)
+        print(10)
+        self._machinePWM.duty_ns(pulseWidth * 1000)
 
 
 class ThrusterMap:
@@ -34,6 +35,7 @@ class ThrusterMap:
         return len(self._PWMMap)
     
     def setPWMByPin(self, pinNumber:int, PWMValue:int):
+        print(9)
         self._PWMMap[pinNumber].setPWM(PWMValue)
 
     def setFrequencyByPin(self, pinNumber:int, frequency:int):
@@ -67,11 +69,14 @@ class Thrust_Control:
             self.thrusters.setPwmByIndex(i, 1500)
 
 def setPinState(pinNumber, words, thrusterControl:Thrust_Control):
+    print(7)
     mode = words[0]
     if mode == "PWM":
         pulseWidth = int(words[1])
         if (1100 <= pulseWidth <= 1900):
-            thrusterControl.setPWMByPin(int(pinNumber), int(pulseWidth) * 1000)
+            print(8)
+            thrusterControl.thrusters.setPWMByPin(int(pinNumber), int(pulseWidth))
+            print(11)
     elif mode == "Digital":
         digitalPinState= words[1]
         if (digitalPinState == "Low" or digitalPinState == "High"):
@@ -119,16 +124,22 @@ def createKillSwitchCallbackSoftware(tc:Thrust_Control):
     return killSwitchGPIOSoftware
         
 def start(tc: Thrust_Control):
+    print(0)
     for i in range(8):
         tc.thrusters.setPwmByIndex(i, 1500)
     # uart = machine.UART(1, 115200)
     # uart.init(115200, bits=8, parity=None, stop=1)
+    print(1)
     led = Pin("LED", Pin.OUT)
     echo = False
+    print(2)
     while True:
+        print(3)
         # string = uart.readline()
         string = sys.stdin.readline()
-        if (string is not None and len(string) > 1):
+        print(4)
+        if (string != None and len(string) > 1):
+            print(5)
             words = string.split()
             command = words[0]
             if len(words) == 2:
@@ -142,6 +153,7 @@ def start(tc: Thrust_Control):
             if echo:
                 sys.stdout.buffer.write(string)
             if len(words) > 2:
+                print(6)
                 led.toggle()
                 if command == "Set":
                     setPinState(words[1], words[2:], tc)
