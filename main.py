@@ -47,7 +47,7 @@ class ThrusterMap:
     
 
 class Thrust_Control:
-    def __init__(self, frequency=10):
+    def __init__(self, frequency=100):
 
         # Define PWM pins for each thruster
         pins = [
