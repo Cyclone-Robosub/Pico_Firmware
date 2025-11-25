@@ -70,7 +70,7 @@ def setPinState(pinNumber, words, thrusterControl:Thrust_Control):
     mode = words[0]
     if mode == "PWM":
         pulseWidth = int(words[1])
-        if (1100 <= pulseWidth <= 1900):
+        if ((1100 <= pulseWidth <= 1900) or pulseWidth == 0):
             thrusterControl.thrusters.setPWMByPin(int(pinNumber), int(pulseWidth))
     elif mode == "Digital":
         digitalPinState= words[1]
