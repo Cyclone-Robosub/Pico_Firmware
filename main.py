@@ -1,6 +1,8 @@
-from machine import Pin, PWM
+from machine import Pin, PWM, Timer
 import sys
 import time
+
+most_recent_ping = time.time()
 
 class PWMPin:
     def __init__(self, pinNumber:int, identifier:str):
@@ -121,32 +123,30 @@ def createKillSwitchCallbackSoftware(tc:Thrust_Control):
 def start(tc: Thrust_Control):
     for i in range(8):
         tc.thrusters.setPwmByIndex(i, 1500)
-    # uart = machine.UART(1, 115200)
-    # uart.init(115200, bits=8, parity=None, stop=1)
     led = Pin("LED", Pin.OUT)
-    echo = False
+    global most_recent_ping
     while True:
-        # string = uart.readline()
         string = sys.stdin.readline()
         if (string != None and len(string) > 1):
             words = string.split()
             command = words[0]
-            if len(words) == 2:
-                if command == "echo":
-                    if words[1] == "on":
-                        led.toggle()
-                        echo = True
-                    elif words[1] == "off":
-                        led.toggle()
-                        echo = False
-            if echo:
-                sys.stdout.buffer.write(string)
+            if (len(words) == 1) and (words[0] == "ping"):
+                most_recent_ping = time.time()
             if len(words) > 2:
+                most_recent_ping = time.time()
                 led.toggle()
                 if command == "Set":
                     setPinState(words[1], words[2:], tc)
                 elif command == "Exit":
                     break
+
+def createHeartbeatCheckCallback(tc:Thrust_Control):
+    def heartbeatCheck(dummy):
+        if time.time() - most_recent_ping > 1:
+            for i in range(8):
+                tc.thrusters.setPwmByIndex(i, 1500)
+    
+    return heartbeatCheck
 
 tc = Thrust_Control()
 killPinHardware = Pin(15, mode=Pin.IN, pull=Pin.PULL_UP)
@@ -159,6 +159,11 @@ if killPinSoftware.value() == 0:
     softwareKillFn(killPinSoftware)
 killPinHardware.irq(trigger=Pin.IRQ_FALLING, handler=createKillSwitchCallbackHardware(tc))
 killPinSoftware.irq(trigger=Pin.IRQ_FALLING, handler=createKillSwitchCallbackSoftware(tc))
+
+heartbeatCheckCallbackFn = createHeartbeatCheckCallback(tc)
+tim = Timer(-1)
+tim.init(mode=Timer.PERIODIC, period=1000, callback=heartbeatCheckCallbackFn) # 1000ms
+
 time.sleep(0.1) # Ensure that the thrusters get their 0 signal for some amount of time
 try:
     start(tc)
