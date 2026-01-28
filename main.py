@@ -123,6 +123,7 @@ def createKillSwitchCallbackSoftware(tc:Thrust_Control):
 def start(tc: Thrust_Control):
     for i in range(8):
         tc.thrusters.setPwmByIndex(i, 1500)
+    time.sleep(1) # Ensure that the thrusters get their 1500 signal for some amount of time
     led = Pin("LED", Pin.OUT)
     global most_recent_ping
     while True:
@@ -164,7 +165,7 @@ heartbeatCheckCallbackFn = createHeartbeatCheckCallback(tc)
 tim = Timer(-1)
 tim.init(mode=Timer.PERIODIC, period=1000, callback=heartbeatCheckCallbackFn) # 1000ms
 
-time.sleep(0.1) # Ensure that the thrusters get their 0 signal for some amount of time
+time.sleep(1) # Ensure that the thrusters get their 0 signal for some amount of time
 try:
     start(tc)
 except:
