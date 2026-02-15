@@ -53,14 +53,15 @@ class Thrust_Control:
 
         # Define PWM pins for each thruster
         pins = [
-            PWMPin(8, "Thruster 0"),
-            PWMPin(9, "Thruster 1"),
-            PWMPin(6, "Thruster 2"),
-            PWMPin(7, "Thruster 3"),
-            PWMPin(13, "Thruster 4"),
-            PWMPin(11, "Thruster 5"),
-            PWMPin(12, "Thruster 6"),
-            PWMPin(10, "Thruster 7")]
+            PWMPin(8, "Thruster 0"),  # pico pin 11
+            PWMPin(9, "Thruster 1"),  # pico pin 12
+            PWMPin(6, "Thruster 2"),  # pico pin 9
+            PWMPin(7, "Thruster 3"),  # pico pin 10
+            PWMPin(13, "Thruster 4"), # pico pin 17
+            PWMPin(11, "Thruster 5"), # pico pin 15
+            PWMPin(12, "Thruster 6"), # pico pin 16
+            PWMPin(10, "Thruster 7")  # pico pin 14
+        ]
         self.thrusters = ThrusterMap(pins)
         
         # Set default frequency and duty cycle
