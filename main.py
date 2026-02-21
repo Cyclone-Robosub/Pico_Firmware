@@ -102,7 +102,7 @@ def hardwareKillFn():
     for i in range(8):
         tc.thrusters.setPwmByIndex(i, 0)
     current_time = str(time.time_ns())
-    crash_log = "Crashes/Crash_at_" + current_time
+    crash_log = "Crashes/Hardware_killswitch_at_" + current_time
     with open(crash_log, "w") as crash_file:
         crash_file.write(f"Hardware killswitch triggered, occuring at {current_time}")
     while True:
@@ -113,7 +113,7 @@ def softwareKillFn():
     for i in range(8):
         tc.thrusters.setPwmByIndex(i, 0)
     current_time = str(time.time_ns())
-    crash_log = "Crashes/Crash_at_" + current_time
+    crash_log = "Crashes/Software_killswitch_at_" + current_time
     with open(crash_log, "w") as crash_file:
         crash_file.write(f"Software killswitch triggered, occuring at {current_time}")
     while True:
@@ -122,6 +122,8 @@ def softwareKillFn():
 
 
 def checkHardwareKillswitch(timer):
+    global hardwareTimerCount
+    global hardwareCount
     hardwareTimerCount += 1
     if killPinHardware.value() == 0:
         hardwareCount+=1
@@ -132,8 +134,10 @@ def checkHardwareKillswitch(timer):
         hardwareCount = 0
 
 def checkSoftwareKillswitch(timer):
+    global softwareTimerCount
+    global softwareCount
     softwareTimerCount += 1
-    if killPinHardware.value() == 0:
+    if killPinSoftware.value() == 0:
         softwareCount+=1
     if softwareTimerCount >= 10:
         softwareTimerCount = 0
@@ -143,11 +147,13 @@ def checkSoftwareKillswitch(timer):
             
 
 def killSwitchCallbackHardware(pin):
+    global hardwareCount
     hardwareCount = 0
     hardwareTimer = Timer()
     hardwareTimer.init(mode=Timer.PERIODIC, period=1, callback=checkHardwareKillswitch)
 
 def killSwitchCallbackSoftware(pin):
+    global softwareCount
     softwareCount = 0
     softwareTimer = Timer()
     softwareTimer.init(mode=Timer.PERIODIC, period=1, callback=checkSoftwareKillswitch)
@@ -174,6 +180,7 @@ def start(tc: Thrust_Control):
                     break
 
 def createHeartbeatCheckCallback(tc:Thrust_Control):
+    global most_recent_ping
     def heartbeatCheck(dummy):
         if time.time() - most_recent_ping > 1:
             for i in range(8):
