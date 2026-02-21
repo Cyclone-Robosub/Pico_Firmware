@@ -99,6 +99,7 @@ def softwareCrash(tc:Thrust_Control):
         ...
 
 def hardwareKillFn():
+    global killPinHardware
     for i in range(8):
         tc.thrusters.setPwmByIndex(i, 0)
     current_time = str(time.time_ns())
@@ -110,6 +111,7 @@ def hardwareKillFn():
             machine.reset()
 
 def softwareKillFn():
+    global killPinSoftware
     for i in range(8):
         tc.thrusters.setPwmByIndex(i, 0)
     current_time = str(time.time_ns())
