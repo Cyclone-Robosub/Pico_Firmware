@@ -3,6 +3,12 @@ import sys
 import time
 
 most_recent_ping = time.time()
+killPinHardware = Pin(15, mode=Pin.IN, pull=Pin.PULL_UP)
+killPinSoftware = Pin(16, mode=Pin.IN, pull=Pin.PULL_DOWN)
+softwareCount = 0
+hardwareCount = 0
+hardwareTimerCount = 0
+softwareTimerCount = 0
 
 class PWMPin:
     def __init__(self, pinNumber:int, identifier:str):
@@ -93,33 +99,67 @@ def softwareCrash(tc:Thrust_Control):
     while True:
         ...
 
-def createKillSwitchCallbackHardware(tc:Thrust_Control):
-    def killSwitchGPIOHardware(pin):
-        for i in range(8):
-            tc.thrusters.setPwmByIndex(i, 0)
-        current_time = str(time.time_ns())
-        crash_log = "Crashes/Crash_at_" + current_time
-        with open(crash_log, "w") as crash_file:
-            crash_file.write(f"Hardware killswitch triggered, occuring at {current_time}")
-        while True:
-            if pin.value() == 1:
-                machine.reset()
+def hardwareKillFn():
+    global killPinHardware
+    for i in range(8):
+        tc.thrusters.setPwmByIndex(i, 0)
+    current_time = str(time.time_ns())
+    crash_log = "Crashes/Hardware_killswitch_at_" + current_time
+    with open(crash_log, "w") as crash_file:
+        crash_file.write(f"Hardware killswitch triggered, occuring at {current_time}")
+    while True:
+        if killPinHardware.value() == 1:
+            machine.reset()
 
-    return killSwitchGPIOHardware
+def softwareKillFn():
+    global killPinSoftware
+    for i in range(8):
+        tc.thrusters.setPwmByIndex(i, 0)
+    current_time = str(time.time_ns())
+    crash_log = "Crashes/Software_killswitch_at_" + current_time
+    with open(crash_log, "w") as crash_file:
+        crash_file.write(f"Software killswitch triggered, occuring at {current_time}")
+    while True:
+        if killPinSoftware.value() == 1:
+            machine.reset()
 
-def createKillSwitchCallbackSoftware(tc:Thrust_Control):
-    def killSwitchGPIOSoftware(pin):
-        for i in range(8):
-            tc.thrusters.setPwmByIndex(i, 0)
-        current_time = str(time.time_ns())
-        crash_log = "Crashes/Crash_at_" + current_time
-        with open(crash_log, "w") as crash_file:
-            crash_file.write(f"Software killswitch triggered, occuring at {current_time}")
-        while True:
-            if pin.value() == 1:
-                machine.reset()
 
-    return killSwitchGPIOSoftware
+def checkHardwareKillswitch(timer):
+    global hardwareTimerCount
+    global hardwareCount
+    hardwareTimerCount += 1
+    if killPinHardware.value() == 0:
+        hardwareCount+=1
+    if hardwareTimerCount >= 10:
+        hardwareTimerCount = 0
+        if hardwareCount >= 5:
+            hardwareKillFn()
+        hardwareCount = 0
+
+def checkSoftwareKillswitch(timer):
+    global softwareTimerCount
+    global softwareCount
+    softwareTimerCount += 1
+    if killPinSoftware.value() == 0:
+        softwareCount+=1
+    if softwareTimerCount >= 10:
+        softwareTimerCount = 0
+        if softwareCount >= 5:
+            softwareKillFn()
+        softwareCount = 0
+            
+
+def killSwitchCallbackHardware(pin):
+    global hardwareCount
+    hardwareCount = 0
+    hardwareTimer = Timer()
+    hardwareTimer.init(mode=Timer.PERIODIC, period=1, callback=checkHardwareKillswitch)
+
+def killSwitchCallbackSoftware(pin):
+    global softwareCount
+    softwareCount = 0
+    softwareTimer = Timer()
+    softwareTimer.init(mode=Timer.PERIODIC, period=1, callback=checkSoftwareKillswitch)
         
 def start(tc: Thrust_Control):
     for i in range(8):
@@ -143,6 +183,7 @@ def start(tc: Thrust_Control):
                     break
 
 def createHeartbeatCheckCallback(tc:Thrust_Control):
+    global most_recent_ping
     def heartbeatCheck(dummy):
         if time.time() - most_recent_ping > 1:
             for i in range(8):
@@ -151,16 +192,12 @@ def createHeartbeatCheckCallback(tc:Thrust_Control):
     return heartbeatCheck
 
 tc = Thrust_Control()
-killPinHardware = Pin(15, mode=Pin.IN, pull=Pin.PULL_UP)
-killPinSoftware = Pin(16, mode=Pin.IN, pull=Pin.PULL_UP)
 if killPinHardware.value() == 0:
-    hardwareKillFn = createKillSwitchCallbackHardware(tc)
-    hardwareKillFn(killPinHardware)
+    hardwareKillFn()
 if killPinSoftware.value() == 0:
-    softwareKillFn = createKillSwitchCallbackSoftware(tc)
-    softwareKillFn(killPinSoftware)
-killPinHardware.irq(trigger=Pin.IRQ_FALLING, handler=createKillSwitchCallbackHardware(tc))
-killPinSoftware.irq(trigger=Pin.IRQ_FALLING, handler=createKillSwitchCallbackSoftware(tc))
+    softwareKillFn()
+killPinHardware.irq(trigger=Pin.IRQ_FALLING, handler=killSwitchCallbackHardware)
+killPinSoftware.irq(trigger=Pin.IRQ_FALLING, handler=killSwitchCallbackSoftware)
 
 heartbeatCheckCallbackFn = createHeartbeatCheckCallback(tc)
 tim = Timer(-1)
