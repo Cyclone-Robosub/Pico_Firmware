@@ -4,7 +4,7 @@ import time
 
 most_recent_ping = time.time()
 killPinHardware = Pin(15, mode=Pin.IN, pull=Pin.PULL_UP)
-killPinSoftware = Pin(16, mode=Pin.IN, pull=Pin.PULL_UP)
+killPinSoftware = Pin(16, mode=Pin.IN, pull=Pin.PULL_DOWN)
 softwareCount = 0
 hardwareCount = 0
 hardwareTimerCount = 0
