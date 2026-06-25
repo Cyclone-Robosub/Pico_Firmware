@@ -106,7 +106,7 @@ def hardwareKillFn():
     with open(crash_log, "w") as crash_file:
         crash_file.write(f"Hardware killswitch triggered, occuring at {current_time}")
     while True:
-        if killPinHardware.value() == 1:
+        if killPinHardware.value() == 0: #inverted due to issue on the pcb
             machine.reset()
 
 
@@ -114,7 +114,8 @@ def checkHardwareKillswitch(timer):
     global hardwareTimerCount
     global hardwareCount
     hardwareTimerCount += 1
-    if killPinHardware.value() == 0:
+    # changed to killPinHardware.value() == 1 to invert kill switch logic while thruster pcb is not fixed
+    if killPinHardware.value() == 1:
         hardwareCount+=1
     if hardwareTimerCount >= 10:
         hardwareTimerCount = 0
@@ -159,7 +160,7 @@ def createHeartbeatCheckCallback(tc:Thrust_Control):
     return heartbeatCheck
 
 tc = Thrust_Control()
-if killPinHardware.value() == 0:
+if killPinHardware.value() == 1: #changed to 1 to invert logic due to issue with thruster board
     hardwareKillFn()
 killPinHardware.irq(trigger=Pin.IRQ_FALLING, handler=killSwitchCallbackHardware)
 
@@ -172,3 +173,4 @@ try:
     start(tc)
 except:
     softwareCrash(tc)
+
