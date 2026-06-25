@@ -114,7 +114,7 @@ def checkHardwareKillswitch(timer):
     global hardwareTimerCount
     global hardwareCount
     hardwareTimerCount += 1
-    # changed to killPinHardware.value() == 1 to invert kill switch logic while thruster pcb is not fixed
+    # changed to killPinHardware.value() == 1 to inverted kill switch logic while thruster pcb is not fixed
     if killPinHardware.value() == 1:
         hardwareCount+=1
     if hardwareTimerCount >= 10:
@@ -160,10 +160,12 @@ def createHeartbeatCheckCallback(tc:Thrust_Control):
     return heartbeatCheck
 
 tc = Thrust_Control()
-if killPinHardware.value() == 1: #changed to 1 to invert logic due to issue with thruster board
+''' #commented out to disable kill switch
+if killPinHardware.value() == 1: #changed to 1, inverted logic due to issue with thruster board
     hardwareKillFn()
+    
 killPinHardware.irq(trigger=Pin.IRQ_FALLING, handler=killSwitchCallbackHardware)
-
+'''
 heartbeatCheckCallbackFn = createHeartbeatCheckCallback(tc)
 tim = Timer(-1)
 tim.init(mode=Timer.PERIODIC, period=1000, callback=heartbeatCheckCallbackFn) # 1000ms
