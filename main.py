@@ -166,7 +166,7 @@ def createHeartbeatCheckCallback(tc:Thrust_Control):
 if os.path.isfile("KILLED"):
     while True:
         string = sys.stdin.readline()
-        if (string != None and len(string) > 1) and string == "resume from kill":
+        if (string != None and len(string) > 1) and string.strip() == "resume from kill":
             os.remove("KILLED")
             break
 
