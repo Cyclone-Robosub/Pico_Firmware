@@ -168,6 +168,7 @@ if os.path.isfile("KILLED"):
         string = sys.stdin.readline()
         if (string != None and len(string) > 1) and string.strip() == "resume from kill":
             os.remove("KILLED")
+            sys.stdout.write("revived")
             break
 
 # Resume standard startup procedure
