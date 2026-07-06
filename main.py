@@ -149,8 +149,9 @@ def start(tc: Thrust_Control):
                 led.toggle()
                 if command == "Set":
                     setPinState(words[1], words[2:], tc)
-                elif command == "Exit":
-                    break
+                if command == "resume" and words[1] == "from" and words[2] == "kill":
+                    led.toggle() # Make sure that we toggle twice so that default state is off
+
 
 def createHeartbeatCheckCallback(tc:Thrust_Control):
     global most_recent_ping
@@ -161,11 +162,6 @@ def createHeartbeatCheckCallback(tc:Thrust_Control):
     
     return heartbeatCheck
 
-
-# Check if we're already killed
-if killPinHardware.value() == 0:
-    hardwareKillFn()
-killPinHardware.irq(trigger=Pin.IRQ_FALLING, handler=killSwitchCallbackHardware) # If not, register falling edge killswitch trigger
 
 # Check if the killswitch was used: if so, we need to wait for signal from thrust interface
 if "KILLED" in uos.listdir():
@@ -178,6 +174,11 @@ if "KILLED" in uos.listdir():
 
 # Resume standard startup procedure
 tc = Thrust_Control()
+
+# Check if we're already killed
+if killPinHardware.value() == 0:
+    hardwareKillFn()
+killPinHardware.irq(trigger=Pin.IRQ_FALLING, handler=killSwitchCallbackHardware) # If not, register falling edge killswitch trigger
 
 heartbeatCheckCallbackFn = createHeartbeatCheckCallback(tc)
 tim = Timer(-1)
