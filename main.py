@@ -1,8 +1,7 @@
 from machine import Pin, PWM, Timer
 import sys
 import time
-import os.path # for checking if the kill file exists
-from os import remove 
+import uos # for checking if the kill file exists
 
 most_recent_ping = time.time()
 killPinHardware = Pin(15, mode=Pin.IN, pull=Pin.PULL_UP)
@@ -162,20 +161,23 @@ def createHeartbeatCheckCallback(tc:Thrust_Control):
     
     return heartbeatCheck
 
-# First check if the killswitch was used: if so, we need to wait for signal from thrust interface
-if os.path.isfile("KILLED"):
+
+# Check if we're already killed
+if killPinHardware.value() == 0:
+    hardwareKillFn()
+killPinHardware.irq(trigger=Pin.IRQ_FALLING, handler=killSwitchCallbackHardware) # If not, register falling edge killswitch trigger
+
+# Check if the killswitch was used: if so, we need to wait for signal from thrust interface
+if "KILLED" in uos.listdir():
     while True:
         string = sys.stdin.readline()
         if (string != None and len(string) > 1) and string.strip() == "resume from kill":
-            os.remove("KILLED")
+            uos.remove("KILLED")
             sys.stdout.write("revived")
             break
 
 # Resume standard startup procedure
 tc = Thrust_Control()
-if killPinHardware.value() == 0: # Check if we're already killed
-    hardwareKillFn()
-killPinHardware.irq(trigger=Pin.IRQ_FALLING, handler=killSwitchCallbackHardware) # If not, register falling edge killswitch trigger
 
 heartbeatCheckCallbackFn = createHeartbeatCheckCallback(tc)
 tim = Timer(-1)
