@@ -4,7 +4,7 @@ import time
 import uos # for checking if the kill file exists
 
 most_recent_ping = time.time()
-killPinHardware = Pin(15, mode=Pin.IN, pull=Pin.PULL_UP)
+killPinHardware = Pin(15, mode=Pin.IN, pull=Pin.PULL_DOWN)
 hardwareCount = 0
 hardwareTimerCount = 0
 softwareTimerCount = 0
