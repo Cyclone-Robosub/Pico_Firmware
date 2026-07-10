@@ -1,9 +1,10 @@
 from machine import Pin, PWM, Timer
 import sys
 import time
+import uos # for checking if the kill file exists
 
 most_recent_ping = time.time()
-killPinHardware = Pin(15, mode=Pin.IN, pull=Pin.PULL_UP)
+killPinHardware = Pin(15, mode=Pin.IN, pull=Pin.PULL_DOWN)
 hardwareCount = 0
 hardwareTimerCount = 0
 softwareTimerCount = 0
@@ -105,6 +106,8 @@ def hardwareKillFn():
     crash_log = "Crashes/Hardware_killswitch_at_" + current_time
     with open(crash_log, "w") as crash_file:
         crash_file.write(f"Hardware killswitch triggered, occuring at {current_time}")
+    with open("KILLED", "w") as kill_switch_indicator:
+        kill_switch_indicator.write("killed")
     while True:
         if killPinHardware.value() == 1:
             machine.reset()
@@ -146,8 +149,9 @@ def start(tc: Thrust_Control):
                 led.toggle()
                 if command == "Set":
                     setPinState(words[1], words[2:], tc)
-                elif command == "Exit":
-                    break
+                if command == "resume" and words[1] == "from" and words[2] == "kill":
+                    led.toggle() # Make sure that we toggle twice so that default state is off
+
 
 def createHeartbeatCheckCallback(tc:Thrust_Control):
     global most_recent_ping
@@ -158,10 +162,23 @@ def createHeartbeatCheckCallback(tc:Thrust_Control):
     
     return heartbeatCheck
 
+
+# Check if the killswitch was used: if so, we need to wait for signal from thrust interface
+if "KILLED" in uos.listdir():
+    while True:
+        string = sys.stdin.readline()
+        if (string != None and len(string) > 1) and string.strip() == "resume from kill":
+            uos.remove("KILLED")
+            sys.stdout.write("revived")
+            break
+
+# Resume standard startup procedure
 tc = Thrust_Control()
+
+# Check if we're already killed
 if killPinHardware.value() == 0:
     hardwareKillFn()
-killPinHardware.irq(trigger=Pin.IRQ_FALLING, handler=killSwitchCallbackHardware)
+killPinHardware.irq(trigger=Pin.IRQ_FALLING, handler=killSwitchCallbackHardware) # If not, register falling edge killswitch trigger
 
 heartbeatCheckCallbackFn = createHeartbeatCheckCallback(tc)
 tim = Timer(-1)
